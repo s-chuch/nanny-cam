@@ -2,39 +2,50 @@
 
 A free nanny cam / baby monitor that runs in your phone's web browser. No app, no account, no subscription.
 
-- One phone (an old one works great) is the **camera**.
-- Your everyday phone is the **viewer**.
-- Video and audio go directly between the two phones (peer-to-peer WebRTC) — nothing is recorded or stored on a server.
-- Save as many cameras as you like and watch them one at a time or all at once.
-- Several phones can watch at the same time.
-- Viewer gets alerts (sound + vibration) when it hears crying/noise or sees movement.
+- One phone (an old one works great) is the **camera**. Your everyday phone **watches**.
+- Video and audio are **end-to-end encrypted** between the phones and never recorded.
+- Only phones you **pair** with the camera's secret key can watch.
+- Save several cameras and watch them one at a time or all at once. Several phones can watch at the same time.
+- Alerts (sound + vibration) for crying/noise, movement, or a lost connection.
 
-## Set it up (one time, free)
-
-1. On GitHub, open this repository → **Settings** → **Pages**.
-2. Under **Build and deployment**, set **Source** to *Deploy from a branch*, pick **main** and **/ (root)**, then **Save**.
-3. After a minute your site is live at:
-   `https://<your-github-username>.github.io/nanny-cam/`
+Live at: **https://s-chuch.github.io/nanny-cam/**
 
 ## Use it
 
-1. On the **camera phone**, open the site and tap **📷 Use this phone as the CAMERA**. Allow camera + microphone.
-   You'll see an 8‑letter code. Prop the phone up and plug it in. Tap **🌙 Dim screen** to make it dark.
-2. On **your phone**, open the site, tap **👀 Use this phone to WATCH**, give the camera a name (e.g. *Nursery*), enter its code, and tap **➕ Save camera**.
-   (Or tap **🔗 Share watch link** on the camera phone and open the link on your phone — it saves the camera automatically.)
-3. Tap **▶️ Watch** next to a camera. Tap **🔈 Unmute** to hear the room.
+1. **Camera phone:** open the site → **📷 Use this phone as the CAMERA** → allow camera + microphone.
+   Prop it up, plug it in, and tap **🌙 Dim screen** if you like.
+2. **Pair your phone** (once): on the camera tap **🔗 Share pairing link** and send it to yourself, then open it on your phone.
+   Or tap **🔑 Show key** and type the key into **👀 Watch → Add a camera** on your phone.
+3. On your phone tap **▶️ Watch** (or **Watch all cameras**). Tap **🔈 Unmute** to hear the room.
 
-### More than one camera or viewer
-- **Several cameras:** set up each extra phone as a camera, and save each code on your phone. Your phone keeps the list.
-  Tap **▶️ Watch all cameras** to see them all at once — alerts say which camera heard or saw something.
-  Use ✏️ to rename and 🗑 to remove a camera.
-- **Several viewers:** any number of phones (you, a partner, grandparents…) can watch the same camera at the same time. Each one just saves the camera's code.
+## Security — how it works
 
-Tip: on your phone, use the browser's **Add to Home Screen** so it opens like an app.
+| Protection | What it means for you |
+|---|---|
+| **Pairing key** (code + 128‑bit secret) | The secret never leaves your phones — not even the connection server sees it. Without it, nobody can watch, even if they know the camera's code. |
+| **Both sides prove themselves** | Your phone checks it's really *your* camera before showing anything, so nobody can fake a feed. |
+| **End‑to‑end encryption, verified** | Video is encrypted (WebRTC DTLS‑SRTP). The encryption keys are checked with the secret, so a server in the middle can't secretly decrypt it. The camera sends nothing until this check passes. |
+| **You can see who's watching** | The camera shows a **● LIVE — watched by …** banner (even when dimmed), chimes when someone starts watching, and lists each viewer with a **Disconnect** button. |
+| **Remove everyone** | **🔒 Remove all viewers** makes a new key. Old links and keys stop working; re-pair the phones you trust. |
+| **Wrong-key blocking** | After 5 wrong attempts the camera blocks new connections, for longer each time. |
+| **Locked-down page** | Content Security Policy, a pinned + integrity-checked PeerJS library, no tracking, nothing stored online. |
+
+### Keep it safe
+- Treat the pairing link/key like a house key. Only send it to people you trust, and delete it from chats afterwards.
+- If you ever lose track of who has it (or a phone is lost), tap **🔒 Remove all viewers** and re-pair.
+- **Disconnect** only kicks someone for now; they still have the key. Use **Remove all viewers** to lock them out.
+- Use this site only from `s-chuch.github.io/nanny-cam/` and don't host other people's pages on `s-chuch.github.io`
+  (they would share the same browser storage).
+
+### Why GitHub Pages (and not AWS / Google Cloud)?
+Moving the page to AWS or GCP would **not** make it more secure. The page is a fixed file served over HTTPS with no secrets,
+and all the security above happens on the phones. Free cloud tiers add a credit card, possible surprise bills (AWS's free
+plan now expires), and servers to keep patched.
+
+What third parties see: the free PeerJS server (introduces the phones) and, on some networks, a relay server, can see
+*that* two devices connected and their IP addresses — but **not** the video, audio, or your key.
 
 ## Good to know
-
-- Both phones need internet (Wi‑Fi or mobile data). Works from anywhere, not just at home.
+- Both phones need internet (Wi‑Fi or mobile data). Works from anywhere.
 - Keep the camera phone's browser **open and on screen** — phones pause the camera if you switch apps or lock it.
-- The code is the key: anyone with it can watch. Tap **♻️ New code** on the camera to change it.
-- Uses the free public [PeerJS](https://peerjs.com/) server only to introduce the two phones to each other.
+- This is a free hobby project; don't rely on it as your only way to watch a child.

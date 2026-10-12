@@ -2,531 +2,85 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src https://0.peerjs.com wss://0.peerjs.com; media-src 'self' blob: mediastream:; img-src 'self' data:; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1b1d2a">
 <title>Nanny Cam</title>
 <link rel="manifest" href="manifest.json">
-<style>
-  :root {
-    --bg: #1b1d2a; --card: #262938; --text: #f2f3f7; --muted: #9aa0b4;
-    --accent: #7c9cff; --danger: #ff6b6b; --ok: #4cd18a;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
-  body {
-    background: var(--bg); color: var(--text);
-    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: flex; flex-direction: column; align-items: center;
-    padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  }
-  h1 { font-size: 1.5rem; margin: 8px 0 4px; }
-  p { color: var(--muted); margin: 4px 0 12px; text-align: center; }
-  .screen { width: 100%; max-width: 520px; display: none; flex-direction: column; gap: 12px; }
-  .screen.active { display: flex; }
-  button, input {
-    font: inherit; border-radius: 14px; border: 0; padding: 14px 16px; width: 100%;
-  }
-  button { background: var(--accent); color: #0d1020; font-weight: 600; cursor: pointer; }
-  button.secondary { background: var(--card); color: var(--text); }
-  button.danger { background: var(--danger); color: #1b0000; }
-  input {
-    background: var(--card); color: var(--text); text-align: center;
-    letter-spacing: 0.2em; text-transform: uppercase; font-size: 1.3rem;
-  }
-  .card { background: var(--card); border-radius: 16px; padding: 16px; text-align: center; }
-  .code { font-size: 2rem; font-weight: 700; letter-spacing: 0.25em; margin: 6px 0; user-select: all; }
-  .row { display: flex; gap: 8px; }
-  .row > * { flex: 1; }
-  video {
-    width: 100%; background: #000; border-radius: 16px; aspect-ratio: 3 / 4; object-fit: contain;
-  }
-  .status { font-size: 0.95rem; color: var(--muted); text-align: center; }
-  .status.ok { color: var(--ok); }
-  .status.bad { color: var(--danger); }
-  .meter { height: 10px; background: #111; border-radius: 6px; overflow: hidden; }
-  .meter > div { height: 100%; width: 0; background: var(--ok); transition: width 0.1s; }
-  .alert {
-    display: none; background: var(--danger); color: #1b0000; font-weight: 700;
-    border-radius: 14px; padding: 12px; text-align: center;
-  }
-  .alert.show { display: block; animation: pulse 1s infinite; }
-  @keyframes pulse { 50% { opacity: 0.6; } }
-  label.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  label.toggle input { width: auto; transform: scale(1.4); }
-  .dim { position: fixed; inset: 0; background: #000; display: none; z-index: 10; }
-  .dim.show { display: block; }
-  .dim span { position: absolute; bottom: 24px; width: 100%; text-align: center; color: #333; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- Home -->
 <section id="home" class="screen active">
   <h1>👶 Nanny Cam</h1>
-  <p>Free, private, phone-to-phone. Video goes directly between your devices.</p>
+  <p>Free phone-to-phone baby monitor. Video is end-to-end encrypted and only phones you pair can watch.</p>
   <button id="goCamera">📷 Use this phone as the CAMERA</button>
   <button id="goViewer" class="secondary">👀 Use this phone to WATCH</button>
-  <p style="font-size:.85rem">Tip: use an old phone as the camera. Keep it plugged in.</p>
+  <p class="small">Tip: use an old phone as the camera. Keep it plugged in.</p>
 </section>
 
 <!-- Camera -->
 <section id="camera" class="screen">
   <h1>📷 Camera</h1>
+  <div id="liveBanner" class="alert live">● LIVE</div>
   <video id="localVideo" autoplay playsinline muted></video>
   <div class="card">
-    <div class="status">Your camera code</div>
-    <div class="code" id="myCode">······</div>
     <div class="status" id="camStatus">Starting…</div>
+    <div id="viewerList" class="list"></div>
+    <div id="keyBox" hidden>
+      <div class="status">Pairing key — only give this to people you trust</div>
+      <div class="key" id="pairKey"></div>
+    </div>
   </div>
   <div class="row">
-    <button id="shareLink" class="secondary">🔗 Share watch link</button>
+    <button id="shareLink">🔗 Share pairing link</button>
+    <button id="showKey" class="secondary">🔑 Show key</button>
+  </div>
+  <div class="row">
     <button id="flipCam" class="secondary">🔄 Flip camera</button>
-  </div>
-  <div class="row">
     <button id="dimScreen" class="secondary">🌙 Dim screen</button>
-    <button id="newCode" class="secondary">♻️ New code</button>
   </div>
+  <button id="revokeAll" class="secondary">🔒 Remove all viewers (new key)</button>
   <button id="stopCam" class="danger">Stop</button>
 </section>
 
 <!-- Viewer: saved cameras -->
 <section id="viewer" class="screen">
   <h1>👀 My cameras</h1>
-  <div id="camList" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div id="camList" class="list"></div>
   <button id="watchAll">▶️ Watch all cameras</button>
-  <div class="card" style="display:flex;flex-direction:column;gap:10px">
-    <div class="status">Add a camera — enter the code shown on the camera phone</div>
-    <input id="nameInput" maxlength="24" autocomplete="off" placeholder="Name (e.g. Nursery)"
-           style="text-transform:none;letter-spacing:normal;font-size:1rem">
-    <input id="codeInput" maxlength="8" autocomplete="off" placeholder="CODE">
+  <div class="card stack">
+    <div class="status">Add a camera — on the camera phone tap “Share pairing link”, or “Show key” and type it here</div>
+    <input id="nameInput" class="plain" maxlength="24" autocomplete="off" placeholder="Name (e.g. Nursery)">
+    <input id="keyInput" class="keyinput" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Pairing key">
     <button id="addCam" class="secondary">➕ Save camera</button>
   </div>
+  <button id="myName" class="secondary">👤 This phone's name</button>
   <button id="viewerHome" class="secondary">← Back</button>
 </section>
 
 <!-- Viewer: watching one or more cameras -->
 <section id="watching" class="screen">
   <div id="alertBox" class="alert">🔔 Activity detected!</div>
-  <div id="tiles" style="display:flex;flex-direction:column;gap:12px"></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:10px;text-align:left">
+  <div id="tiles" class="stack"></div>
+  <div class="card stack left">
     <label class="toggle">Alert on noise (crying) <input type="checkbox" id="noiseAlert" checked></label>
     <label class="toggle">Alert on movement <input type="checkbox" id="motionAlert"></label>
-    <label class="toggle">Sensitivity
-      <input type="range" id="sensitivity" min="1" max="10" value="5" style="width:50%;transform:none">
-    </label>
+    <label class="toggle">Sensitivity <input type="range" id="sensitivity" min="1" max="10" value="5"></label>
   </div>
   <button id="stopWatching" class="danger">Stop watching</button>
 </section>
 
-<div class="dim" id="dim"><span>Tap to wake screen</span></div>
+<div class="dim" id="dim">
+  <div id="dimLive" class="dimlive" hidden>● LIVE</div>
+  <span>Tap to wake screen</span>
+</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-<script>
-(() => {
-  const PREFIX = 'nanny-cam-v1-';
-  const $ = (id) => document.getElementById(id);
-  const store = {
-    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
-  };
-
-  function show(id) {
-    document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
-  }
-  function setStatus(el, text, cls = '') {
-    el.textContent = text;
-    el.className = 'status ' + cls;
-  }
-  function randomCode() {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no look-alikes (0/O, 1/I/L)
-    const bytes = crypto.getRandomValues(new Uint8Array(8));
-    return Array.from(bytes, (b) => chars[b % chars.length]).join('');
-  }
-
-  // Keep the screen awake while in use (supported on most modern phones)
-  let wakeLock = null;
-  async function keepAwake() {
-    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
-  }
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && (camPeer || viewPeer)) keepAwake();
-  });
-
-  // ---------------- CAMERA ----------------
-  let camPeer = null, localStream = null, facing = 'user';
-  const viewers = new Map();
-
-  async function getCamera() {
-    localStream?.getTracks().forEach((t) => t.stop());
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true },
-    });
-    $('localVideo').srcObject = localStream;
-    // Swap tracks for anyone already watching
-    for (const call of viewers.values()) {
-      const senders = call.peerConnection?.getSenders() || [];
-      for (const track of localStream.getTracks()) {
-        senders.find((s) => s.track?.kind === track.kind)?.replaceTrack(track);
-      }
-    }
-  }
-
-  async function startCamera() {
-    show('camera');
-    const camStatus = $('camStatus');
-    try {
-      await getCamera();
-    } catch (e) {
-      setStatus(camStatus, 'Camera/microphone permission denied: ' + e.message, 'bad');
-      return;
-    }
-    let code = store.get('camCode');
-    if (!code) { code = randomCode(); store.set('camCode', code); }
-    $('myCode').textContent = code;
-    keepAwake();
-    connectCamPeer(code);
-  }
-
-  function connectCamPeer(code) {
-    const camStatus = $('camStatus');
-    camPeer?.destroy();
-    camPeer = new Peer(PREFIX + code);
-    camPeer.on('open', () => setStatus(camStatus, 'Ready — waiting for a viewer', 'ok'));
-    camPeer.on('connection', (conn) => {
-      // A viewer asked to watch: call them back with our camera stream
-      conn.on('open', () => {
-        const call = camPeer.call(conn.peer, localStream);
-        viewers.set(conn.peer, call);
-        updateViewerCount();
-        const drop = () => { viewers.delete(conn.peer); updateViewerCount(); };
-        call.on('close', drop);
-        call.on('error', drop);
-        conn.on('close', () => { call.close(); drop(); });
-      });
-    });
-    camPeer.on('disconnected', () => {
-      setStatus(camStatus, 'Reconnecting…', 'bad');
-      setTimeout(() => camPeer && !camPeer.destroyed && camPeer.reconnect(), 2000);
-    });
-    camPeer.on('error', (err) => {
-      if (err.type === 'unavailable-id') {
-        setStatus(camStatus, 'Code in use (another tab?). Retrying…', 'bad');
-        setTimeout(() => connectCamPeer(code), 5000);
-      } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
-        setStatus(camStatus, 'Network problem — retrying…', 'bad');
-        setTimeout(() => connectCamPeer(code), 5000);
-      } else {
-        setStatus(camStatus, 'Error: ' + err.type, 'bad');
-      }
-    });
-  }
-
-  function updateViewerCount() {
-    const n = viewers.size;
-    setStatus($('camStatus'), n ? `🟢 ${n} viewer${n > 1 ? 's' : ''} watching` : 'Ready — waiting for a viewer', 'ok');
-  }
-
-  function stopCamera() {
-    camPeer?.destroy(); camPeer = null;
-    localStream?.getTracks().forEach((t) => t.stop()); localStream = null;
-    viewers.clear();
-    wakeLock?.release?.(); wakeLock = null;
-    show('home');
-  }
-
-  $('goCamera').onclick = startCamera;
-  $('stopCam').onclick = stopCamera;
-  $('flipCam').onclick = async () => {
-    facing = facing === 'user' ? 'environment' : 'user';
-    try { await getCamera(); } catch (e) { alert('Could not switch camera: ' + e.message); }
-  };
-  $('newCode').onclick = () => {
-    if (!confirm('Make a new code? Old watch links will stop working.')) return;
-    const code = randomCode();
-    store.set('camCode', code);
-    $('myCode').textContent = code;
-    connectCamPeer(code);
-  };
-  $('shareLink').onclick = async () => {
-    const url = location.origin + location.pathname + '#watch=' + $('myCode').textContent;
-    try {
-      if (navigator.share) await navigator.share({ title: 'Nanny Cam', url });
-      else { await navigator.clipboard.writeText(url); alert('Link copied:\n' + url); }
-    } catch {}
-  };
-  $('dimScreen').onclick = () => $('dim').classList.add('show');
-  $('dim').onclick = () => $('dim').classList.remove('show');
-
-  // ---------------- VIEWER ----------------
-  // Saved cameras live on this phone only: [{ name, code }]
-  const loadCams = () => { try { return JSON.parse(store.get('cameras')) || []; } catch { return []; } };
-  const saveCams = (list) => store.set('cameras', JSON.stringify(list));
-  // Move the single code saved by the old version into the list
-  if (store.get('lastCode') && !loadCams().length) {
-    saveCams([{ name: 'Camera 1', code: store.get('lastCode') }]);
-  }
-
-  function addCamera(code, name) {
-    code = code.trim().toUpperCase();
-    if (!code) return null;
-    const list = loadCams();
-    let cam = list.find((c) => c.code === code);
-    if (!cam) {
-      cam = { code, name: name?.trim() || 'Camera ' + (list.length + 1) };
-      list.push(cam);
-      saveCams(list);
-    }
-    return cam;
-  }
-
-  function renderCamList() {
-    const box = $('camList');
-    box.innerHTML = '';
-    const list = loadCams();
-    $('watchAll').style.display = list.length > 1 ? '' : 'none';
-    if (!list.length) {
-      box.innerHTML = '<p>No cameras saved yet. Add one below.</p>';
-      return;
-    }
-    for (const cam of list) {
-      const row = document.createElement('div');
-      row.className = 'card';
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;text-align:left;padding:10px 12px';
-      row.innerHTML = `<div style="flex:1;min-width:0">
-          <div class="cam-name" style="font-weight:600;overflow:hidden;text-overflow:ellipsis"></div>
-          <div class="status" style="text-align:left;letter-spacing:.15em">${cam.code}</div>
-        </div>
-        <button style="width:auto">▶️ Watch</button>
-        <button class="secondary" style="width:auto;padding:14px 10px" title="Rename">✏️</button>
-        <button class="secondary" style="width:auto;padding:14px 10px" title="Remove">🗑</button>`;
-      row.querySelector('.cam-name').textContent = cam.name;
-      const [watch, rename, remove] = row.querySelectorAll('button');
-      watch.onclick = () => startWatching([cam]);
-      rename.onclick = () => {
-        const name = prompt('Camera name', cam.name);
-        if (!name?.trim()) return;
-        saveCams(loadCams().map((c) => (c.code === cam.code ? { ...c, name: name.trim() } : c)));
-        renderCamList();
-      };
-      remove.onclick = () => {
-        if (!confirm(`Remove "${cam.name}"?`)) return;
-        saveCams(loadCams().filter((c) => c.code !== cam.code));
-        renderCamList();
-      };
-      box.appendChild(row);
-    }
-  }
-
-  function startViewer() {
-    show('viewer');
-    renderCamList();
-  }
-
-  // One PeerJS connection for this phone, one session per camera being watched
-  let viewPeer = null, lastAlert = 0;
-  const sessions = new Map(); // peer id → session
-
-  function startWatching(cams) {
-    stopWatching();
-    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-    show('watching');
-    keepAwake();
-    $('tiles').innerHTML = '';
-    for (const cam of cams) {
-      const tile = document.createElement('div');
-      tile.className = 'card';
-      tile.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:10px';
-      tile.innerHTML = `<div style="display:flex;align-items:center;gap:8px">
-          <div class="cam-name" style="flex:1;text-align:left;font-weight:600"></div>
-          <button class="secondary" style="width:auto;padding:8px 12px">🔈 Unmute</button>
-          <button class="secondary" style="width:auto;padding:8px 12px">⛶</button>
-        </div>
-        <video autoplay playsinline muted></video>
-        <div class="meter"><div></div></div>
-        <div class="status">Connecting…</div>`;
-      tile.querySelector('.cam-name').textContent = cam.name;
-      const [unmute, full] = tile.querySelectorAll('button');
-      const video = tile.querySelector('video');
-      unmute.onclick = () => {
-        video.muted = !video.muted;
-        unmute.textContent = video.muted ? '🔈 Unmute' : '🔇 Mute';
-        video.play().catch(() => {});
-      };
-      full.onclick = () => (video.requestFullscreen || video.webkitEnterFullscreen || video.webkitRequestFullscreen)?.call(video);
-      $('tiles').appendChild(tile);
-      sessions.set(PREFIX + cam.code, {
-        cam, video, statusEl: tile.querySelector('.status'), bar: tile.querySelector('.meter > div'),
-        call: null, retryTimer: null, monitor: null,
-      });
-    }
-    openViewPeer();
-  }
-
-  function openViewPeer() {
-    viewPeer?.destroy();
-    const peer = viewPeer = new Peer();
-    peer.on('open', () => sessions.forEach(dial));
-    peer.on('call', (call) => {
-      const s = sessions.get(call.peer);
-      if (!s) { call.close(); return; }
-      s.call?.close();
-      s.call = call;
-      call.answer(); // receive only
-      call.on('stream', (stream) => {
-        s.video.srcObject = stream;
-        setStatus(s.statusEl, '🟢 Live', 'ok');
-        startMonitoring(s, stream);
-      });
-      call.on('close', () => { if (s.call === call) retry(s); });
-    });
-    peer.on('error', (err) => {
-      if (err.type === 'peer-unavailable') {
-        // PeerJS puts the missing peer's id in the message
-        for (const [id, s] of sessions) {
-          if (err.message.includes(id)) {
-            setStatus(s.statusEl, 'Camera not found — is it running? Retrying…', 'bad');
-            retry(s, true);
-          }
-        }
-      } else if (peer === viewPeer) {
-        sessions.forEach((s) => setStatus(s.statusEl, 'Problem: ' + err.type + ' — retrying…', 'bad'));
-        setTimeout(() => peer === viewPeer && openViewPeer(), 4000);
-      }
-    });
-    peer.on('disconnected', () => {
-      setTimeout(() => peer === viewPeer && !peer.destroyed && peer.reconnect(), 2000);
-    });
-  }
-
-  // Ask the camera to call us back with its stream
-  function dial(s, id) {
-    if (!viewPeer || viewPeer.disconnected) { retry(s, true); return; }
-    const conn = viewPeer.connect(id ?? PREFIX + s.cam.code, { reliable: true });
-    conn.on('close', () => retry(s));
-  }
-
-  function retry(s, keepStatus) {
-    if (sessions.get(PREFIX + s.cam.code) !== s) return; // no longer watching
-    stopMonitoring(s);
-    s.call = null;
-    if (!keepStatus) setStatus(s.statusEl, 'Connection lost — retrying…', 'bad');
-    clearTimeout(s.retryTimer);
-    s.retryTimer = setTimeout(() => dial(s), 4000);
-  }
-
-  function stopWatching() {
-    for (const s of sessions.values()) {
-      clearTimeout(s.retryTimer);
-      stopMonitoring(s);
-      s.call?.close();
-    }
-    sessions.clear();
-    viewPeer?.destroy(); viewPeer = null;
-    $('tiles').innerHTML = '';
-    wakeLock?.release?.(); wakeLock = null;
-  }
-
-  // Sound + motion monitoring, done on the viewer phone (per camera)
-  function startMonitoring(s, stream) {
-    stopMonitoring(s);
-    let audioCtx = null, analyser = null;
-    if (stream.getAudioTracks().length) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 512;
-      audioCtx.createMediaStreamSource(stream).connect(analyser);
-    }
-    const buf = analyser ? new Uint8Array(analyser.fftSize) : null;
-    const canvas = document.createElement('canvas');
-    canvas.width = 64; canvas.height = 48;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    let prev = null, loudFrames = 0, motionFrames = 0;
-
-    const timer = setInterval(() => {
-      const sens = +$('sensitivity').value; // 1..10
-      if (analyser) {
-        analyser.getByteTimeDomainData(buf);
-        let sum = 0;
-        for (const v of buf) sum += (v - 128) ** 2;
-        const level = Math.min(1, Math.sqrt(sum / buf.length) / 40);
-        s.bar.style.width = (level * 100).toFixed(0) + '%';
-        const threshold = 0.65 - sens * 0.05; // higher sensitivity → lower threshold
-        loudFrames = level > threshold ? loudFrames + 1 : 0;
-        if ($('noiseAlert').checked && loudFrames >= 4) triggerAlert(`🔊 Noise — ${s.cam.name}`);
-      }
-      if ($('motionAlert').checked && s.video.readyState >= 2) {
-        ctx.drawImage(s.video, 0, 0, 64, 48);
-        const data = ctx.getImageData(0, 0, 64, 48).data;
-        if (prev) {
-          let changed = 0;
-          for (let i = 0; i < data.length; i += 4) {
-            if (Math.abs(data[i] - prev[i]) + Math.abs(data[i + 1] - prev[i + 1]) > 60) changed++;
-          }
-          const frac = changed / (64 * 48);
-          motionFrames = frac > 0.12 - sens * 0.01 ? motionFrames + 1 : 0;
-          if (motionFrames >= 2) triggerAlert(`🏃 Movement — ${s.cam.name}`);
-        }
-        prev = data;
-      }
-    }, 250);
-    s.monitor = { timer, audioCtx };
-  }
-
-  function stopMonitoring(s) {
-    if (!s.monitor) return;
-    clearInterval(s.monitor.timer);
-    s.monitor.audioCtx?.close();
-    s.monitor = null;
-    s.bar.style.width = '0';
-  }
-
-  function triggerAlert(msg) {
-    const now = Date.now();
-    if (now - lastAlert < 10000) return; // at most every 10s
-    lastAlert = now;
-    const box = $('alertBox');
-    box.textContent = msg;
-    box.classList.add('show');
-    setTimeout(() => box.classList.remove('show'), 6000);
-    navigator.vibrate?.([300, 150, 300]);
-    beep();
-    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification('Nanny Cam', { body: msg });
-    }
-  }
-
-  function beep() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      osc.frequency.value = 880;
-      osc.connect(ctx.destination);
-      osc.start(); osc.stop(ctx.currentTime + 0.4);
-      osc.onended = () => ctx.close();
-    } catch {}
-  }
-
-  $('goViewer').onclick = startViewer;
-  $('viewerHome').onclick = () => show('home');
-  $('addCam').onclick = () => {
-    if (!$('codeInput').value.trim()) { $('codeInput').focus(); return; }
-    addCamera($('codeInput').value, $('nameInput').value);
-    $('codeInput').value = ''; $('nameInput').value = '';
-    renderCamList();
-  };
-  $('codeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('addCam').click(); });
-  $('watchAll').onclick = () => startWatching(loadCams());
-  $('stopWatching').onclick = () => { stopWatching(); startViewer(); };
-
-  // Open straight into watching from a shared link: …/#watch=CODE (also saves it)
-  const m = location.hash.match(/watch=([A-Za-z0-9]+)/);
-  if (m) {
-    const cam = addCamera(m[1]);
-    history.replaceState(null, '', location.pathname);
-    startWatching([cam]);
-  }
-})();
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"
+  integrity="sha512-iFU+yF1keEaLDC9HEwPfLMSRaS0unBHE14GEgx6pQKJXjp5v0tvX8xpfp2lgJ62XEjbYp/M5C3CAmej/PWXMyA=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="app.js"></script>
 </body>
 </html>
