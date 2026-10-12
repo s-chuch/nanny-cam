@@ -31,12 +31,14 @@
     <div id="viewerList" class="list"></div>
     <div id="keyBox" hidden>
       <div class="status">Pairing key — only give this to people you trust</div>
+      <canvas id="pairQr" class="qr" width="240" height="240" aria-label="Pairing QR code"></canvas>
+      <div class="status">Scan with the other phone's camera app</div>
       <div class="key" id="pairKey"></div>
     </div>
   </div>
   <div class="row">
     <button id="shareLink">🔗 Share pairing link</button>
-    <button id="showKey" class="secondary">🔑 Show key</button>
+    <button id="showKey" class="secondary">🔑 Show key / QR</button>
   </div>
   <div class="row">
     <button id="flipCam" class="secondary">🔄 Flip camera</button>
@@ -52,7 +54,7 @@
   <div id="camList" class="list"></div>
   <button id="watchAll">▶️ Watch all cameras</button>
   <div class="card stack">
-    <div class="status">Add a camera — on the camera phone tap “Share pairing link”, or “Show key” and type it here</div>
+    <div class="status">Add a camera — on the camera phone tap “Show key / QR”, then scan the QR with this phone’s camera app (or type the key here)</div>
     <input id="nameInput" class="plain" maxlength="24" autocomplete="off" placeholder="Name (e.g. Nursery)">
     <input id="keyInput" class="keyinput" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Pairing key">
     <button id="addCam" class="secondary">➕ Save camera</button>
@@ -81,6 +83,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"
   integrity="sha512-iFU+yF1keEaLDC9HEwPfLMSRaS0unBHE14GEgx6pQKJXjp5v0tvX8xpfp2lgJ62XEjbYp/M5C3CAmej/PWXMyA=="
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="qr.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

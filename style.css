@@ -53,3 +53,4 @@ label.toggle input[type=range] { width: 50%; padding: 0; }
 .dim.show { display: block; }
 .dim span { position: absolute; bottom: 24px; width: 100%; text-align: center; color: #333; }
 .dimlive { position: absolute; top: 24px; width: 100%; text-align: center; color: #b33; font-weight: 700; animation: pulse 1.5s infinite; }
+.qr { display: block; margin: 10px auto 4px; width: 240px; max-width: 100%; height: auto; border-radius: 12px; background: #fff; image-rendering: pixelated; }

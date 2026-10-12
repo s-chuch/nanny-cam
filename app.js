@@ -321,6 +321,34 @@
     setStatus($('camStatus'), text, camPeer?.open ? 'ok' : '');
   }
 
+  function pairingUrl() {
+    const { code, secret } = camIdentity();
+    return location.origin + location.pathname + '#pair=' + code + secret;
+  }
+
+  // Draw the pairing link as a QR code (white background, 4-module quiet zone)
+  function drawQr() {
+    const canvas = $('pairQr');
+    if (typeof qrcode !== 'function') { canvas.hidden = true; return; }
+    const qr = qrcode(0, 'M');
+    qr.addData(pairingUrl());
+    qr.make();
+    const n = qr.getModuleCount(), quiet = 4;
+    const scale = Math.floor(canvas.width / (n + quiet * 2));
+    const size = (n + quiet * 2) * scale;
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
+    }
+  }
+  function clearQr() {
+    const canvas = $('pairQr');
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  }
+
   function stopCamera() {
     for (const id of [...viewers.keys()]) dropViewer(id);
     camPeer?.destroy(); camPeer = null;
@@ -328,6 +356,8 @@
     wakeLock?.release?.(); wakeLock = null;
     $('liveBanner').classList.remove('show');
     $('dimLive').hidden = true;
+    $('keyBox').hidden = true; clearQr();
+    $('showKey').textContent = '🔑 Show key / QR';
     show('home');
   }
 
@@ -344,13 +374,15 @@
     for (const id of [...viewers.keys()]) dropViewer(id);
     const { code, secret } = camIdentity();
     $('pairKey').textContent = groupKey(code + secret);
+    if (!$('keyBox').hidden) drawQr();
     blockedCount = 0;
     connectCamPeer();
   };
   $('showKey').onclick = () => {
     const box = $('keyBox');
     box.hidden = !box.hidden;
-    $('showKey').textContent = box.hidden ? '🔑 Show key' : '🙈 Hide key';
+    if (box.hidden) clearQr(); else drawQr();
+    $('showKey').textContent = box.hidden ? '🔑 Show key / QR' : '🙈 Hide key / QR';
   };
   $('shareLink').onclick = async () => {
     const { code, secret } = camIdentity();
@@ -420,7 +452,7 @@
       const watch = el('button', 'small', cam.secret ? '▶️ Watch' : '🔑 Re-pair');
       watch.onclick = () => {
         if (cam.secret) { startWatching([cam]); return; }
-        const key = parseKey(prompt(`Pairing key for "${cam.name}" (from the camera's “Show key”):`));
+        const key = parseKey(prompt(`Pairing key for "${cam.name}" (from the camera's “Show key / QR”):`));
         if (!key) { alert('That pairing key is not valid.'); return; }
         saveCams(loadCams().filter((c) => c.code !== cam.code));
         addCamera(key, cam.name);
@@ -691,7 +723,7 @@
   $('viewerHome').onclick = () => show('home');
   $('addCam').onclick = () => {
     const key = parseKey($('keyInput').value);
-    if (!key) { alert('That pairing key is not valid. It is 34 letters and numbers, shown on the camera under “Show key”.'); return; }
+    if (!key) { alert('That pairing key is not valid. It is 34 letters and numbers, shown on the camera under “Show key / QR”.'); return; }
     addCamera(key, $('nameInput').value);
     $('keyInput').value = ''; $('nameInput').value = '';
     renderCamList();

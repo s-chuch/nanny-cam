@@ -14,8 +14,11 @@ Live at: **https://s-chuch.github.io/nanny-cam/**
 
 1. **Camera phone:** open the site → **📷 Use this phone as the CAMERA** → allow camera + microphone.
    Prop it up, plug it in, and tap **🌙 Dim screen** if you like.
-2. **Pair your phone** (once): on the camera tap **🔗 Share pairing link** and send it to yourself, then open it on your phone.
-   Or tap **🔑 Show key** and type the key into **👀 Watch → Add a camera** on your phone.
+2. **Pair your phone** (once), any of these ways:
+   - **QR code:** on the camera tap **🔑 Show key / QR**, then point your phone's normal camera app at the QR code and open the link.
+   - **Link:** tap **🔗 Share pairing link** and send it to yourself.
+   - **Type it:** enter the key under **👀 Watch → Add a camera**.
+   The QR code and key only appear while you have them showing; tap **🙈 Hide key / QR** when done, and don't let anyone photograph the screen.
 3. On your phone tap **▶️ Watch** (or **Watch all cameras**). Tap **🔈 Unmute** to hear the room.
 
 ## Security — how it works
