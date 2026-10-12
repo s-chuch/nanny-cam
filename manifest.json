@@ -1,0 +1,9 @@
+{
+  "name": "Nanny Cam",
+  "short_name": "Nanny Cam",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1b1d2a",
+  "theme_color": "#1b1d2a",
+  "icons": []
+}
