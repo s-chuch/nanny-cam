@@ -329,10 +329,16 @@
   // Draw the pairing link as a QR code (white background, 4-module quiet zone)
   function drawQr() {
     const canvas = $('pairQr');
-    if (typeof qrcode !== 'function') { canvas.hidden = true; return; }
-    const qr = qrcode(0, 'M');
-    qr.addData(pairingUrl());
-    qr.make();
+    let qr;
+    try {
+      qr = qrcode(0, 'M');
+      qr.addData(pairingUrl());
+      qr.make();
+    } catch {
+      canvas.hidden = true; $('qrError').hidden = false;
+      return;
+    }
+    canvas.hidden = false; $('qrError').hidden = true;
     const n = qr.getModuleCount(), quiet = 4;
     const scale = Math.floor(canvas.width / (n + quiet * 2));
     const size = (n + quiet * 2) * scale;

@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#1b1d2a">
 <title>Nanny Cam</title>
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v5">
 </head>
 <body>
 
@@ -19,6 +19,7 @@
   <button id="goCamera">📷 Use this phone as the CAMERA</button>
   <button id="goViewer" class="secondary">👀 Use this phone to WATCH</button>
   <p class="small">Tip: use an old phone as the camera. Keep it plugged in.</p>
+  <p class="small" id="version">Version 5</p>
 </section>
 
 <!-- Camera -->
@@ -31,6 +32,7 @@
     <div id="viewerList" class="list"></div>
     <div id="keyBox" hidden>
       <div class="status">Pairing key — only give this to people you trust</div>
+      <div class="status bad" id="qrError" hidden>QR code couldn't be drawn — use “Share pairing link” instead.</div>
       <canvas id="pairQr" class="qr" width="240" height="240" aria-label="Pairing QR code"></canvas>
       <div class="status">Scan with the other phone's camera app</div>
       <div class="key" id="pairKey"></div>
@@ -83,7 +85,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"
   integrity="sha512-iFU+yF1keEaLDC9HEwPfLMSRaS0unBHE14GEgx6pQKJXjp5v0tvX8xpfp2lgJ62XEjbYp/M5C3CAmej/PWXMyA=="
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="qr.js"></script>
-<script src="app.js"></script>
+<script src="qr.js?v5"></script>
+<script src="app.js?v5"></script>
 </body>
 </html>
